@@ -1,0 +1,98 @@
+﻿
+@page "/"
+@using System.Net.Http.Json
+
+<PageTitle>Dragon Ball - Personagens</PageTitle>
+
+<h1>Dragon Ball - Consulta de Personagens</h1>
+
+<p>Digite o ID de um personagem para consultar seus dados.</p>
+
+<div>
+    <input type="number" @bind="personagemId" min="1" />
+    <button @onclick="BuscarPersonagem">Buscar personagem</button>
+</div>
+
+@if (!string.IsNullOrEmpty(erro))
+{
+    <p style="color: red">@erro</p>
+}
+
+@if (personagem != null)
+{
+    <h2>@personagem.Name</h2>
+
+    <p><strong>Planeta:</strong> @(personagem.OriginPlanet?.Name ?? "Não informado")</p>
+
+    <h3>Transformações</h3>
+
+    @if (personagem.Transformations?.Count > 0)
+    {
+        <ul>
+            @foreach (var transformacao in personagem.Transformations)
+            {
+                <li>@transformacao.Name</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>Nenhuma transformação cadastrada.</p>
+    }
+}
+
+@code {
+    private int personagemId = 1;
+    private Personagem? personagem;
+    private string? erro;
+
+    private async Task BuscarPersonagem()
+    {
+        personagem = null;
+        erro = null;
+
+        if (personagemId < 1)
+        {
+            erro = "Digite um ID válido.";
+            return;
+        }
+
+        try
+        {
+            using var http = new HttpClient();
+
+            personagem = await http.GetFromJsonAsync<Personagem>(
+                $"https://dragonball-api.com/api/characters/{personagemId}");
+
+            if (personagem == null)
+            {
+                erro = "Personagem não encontrado.";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            erro = "Não foi possível consultar a API.";
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            erro = "Não foi possível interpretar os dados do personagem.";
+        }
+    }
+
+    public class Personagem
+    {
+        public string Name { get; set; } = "";
+        public Planeta? OriginPlanet { get; set; }
+        public List<Transformacao>? Transformations { get; set; }
+    }
+
+    public class Planeta
+    {
+        public string Name { get; set; } = "";
+    }
+
+    public class Transformacao
+    {
+        public string Name { get; set; } = "";
+    }
+}
